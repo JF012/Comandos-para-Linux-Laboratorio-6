@@ -1,0 +1,177 @@
+# Instalación manual de Snort 3 y dependencias
+$ sudo apt update
+$ sudo apt install -y build-essential libpcap-dev libpcre3-dev libdumbnet-dev bison flex zlib1g-dev liblzma-dev libssl-dev libluajit-5.1-dev pkg-config cmake libnetfilter-queue-dev libmnl-dev libnghttp2-dev autoconf libtool git libdbus-1-dev
+
+# Instala hwloc desde fuente:
+$ wget https://download.open-mpi.org/release/hwloc/v2.9/hwloc-2.9.0.tar.gz
+tar xf hwloc-2.9.0.tar.gz
+cd hwloc-2.9.0
+./configure --prefix=/usr/local
+make -j"$(nproc)"
+sudo make install
+sudo ldconfig
+
+# Instala PCRE2:
+$ sudo apt install -y libpcre2-dev
+
+# Elimina libdaq antigua e instala libdaq3:
+$ sudo apt remove -y libdaq-dev libdaq2
+cd ~
+git clone https://github.com/snort3/libdaq.git
+cd libdaq
+./bootstrap
+./configure
+make -j"$(nproc)"
+sudo make install
+sudo ldconfig
+
+# Clona y compila Snort 3:
+$ cd ~
+git clone https://github.com/snort3/snort3.git
+cd snort3
+mkdir build
+cd build
+cmake ..
+make -j"$(nproc)"
+sudo make install
+
+# Verifica Snort:
+$ snort -V
+# (Debe mostrar la versión correctamente)
+
+
+
+
+
+
+
+--------Configuración de Snort 3 (vm1/en33)--------
+
+# Edita la carpeta /usr/local/etc/snort/snort_defaults.lua
+$ sudo nano /usr/local/etc/snort/snort_defaults.lua
+
+# Despues de esta linea: 
+-------------------------------------------------------
+-- default networks - used in Talos rules
+-------------------------------------------------------
+-- define servers on your network you want to protect
+
+# Agrega: 
+DNS_SERVERS = HOME_NET
+FTP_SERVERS = HOME_NET
+HTTP_SERVERS = HOME_NET
+SIP_SERVERS = HOME_NET
+SMTP_SERVERS = HOME_NET
+SQL_SERVERS = HOME_NET
+SSH_SERVERS = HOME_NET
+TELNET_SERVERS = HOME_NET
+
+# En esta linea: 
+default_variables = 
+{
+    nets = 
+    {
+        HOME_NET = HOME_NET,
+        EXTERNAL_NET = EXTERNAL_NET,
+        DNS_SERVERS = DNS_SERVERS,
+        FTP_SERVERS = FTP_SERVERS,
+        HTTP_SERVERS = HTTP_SERVERS,
+        SIP_SERVERS = SIP_SERVERS,
+        SMTP_SERVERS = SMTP_SERVERS,
+        SQL_SERVERS = SQL_SERVERS,
+        SSH_SERVERS = SSH_SERVERS,
+        TELNET_SERVERS = TELNET_SERVERS
+    },
+    paths = {
+        RULE_PATH = RULE_PATH,
+        BUILTIN_RULE_PATH = BUILTIN_RULE_PATH,
+        PLUGIN_RULE_PATH = PLUGIN_RULE_PATH,
+        WHITE_LIST_PATH = WHITE_LIST_PATH,
+        BLACK_LIST_PATH = BLACK_LIST_PATH
+    },
+    ports = {
+        FTP_PORTS = FTP_PORTS,
+        HTTP_PORTS = HTTP_PORTS,
+        MAIL_PORTS = MAIL_PORTS,
+        ORACLE_PORTS = ORACLE_PORTS,
+        SIP_PORTS = SIP_PORTS,
+        SSH_PORTS = SSH_PORTS,
+        FILE_DATA_PORTS = FILE_DATA_PORTS
+    }
+}
+
+# Donde dice: 
+HOME_NET = HOME_NET,
+EXTERNAL_NET = EXTERNAL_NET,
+
+# Cambia "HOME_NET = HOME_NET," despues del "=" con tu IP
+
+# Y "EXTERNAL_NET = EXTERNAL_NET,"
+# A "EXTERNAL_NET = 'any' "
+
+# Crea el directorio y archivo de reglas locales
+$ sudo mkdir -p /usr/local/etc/snort/rules
+$ sudo nano /usr/local/etc/snort/rules/local.rules
+
+# Escribe estas reglas:
+alert icmp any any -> $HOME_NET any (msg:"ICMP hacia vm1 (192.168.0.100)"; sid:1000001; rev:1;)
+alert tcp any any -> $HOME_NET 21 (msg:"TCP hacia puerto 21 en vm1"; sid:1000002; rev:1;)
+alert tcp any any -> $HOME_NET 22 (msg:"TCP hacia puerto 22 en vm1"; sid:1000003; rev:1;)
+alert tcp any any -> $HOME_NET 80 (msg:"TCP hacia puerto 80 en vm1"; sid:1000004; rev:1;)
+
+# Enlaza las reglas en /usr/local/etc/snort/snort.lua (bloque ips):
+Debe verse así:
+
+lua
+ips = {
+    rules = [[
+        include /usr/local/etc/snort/rules/local.rules
+    ]],
+    variables = default_variables
+}
+
+
+# Validar configuración
+$ sudo snort -c /usr/local/etc/snort/snort.lua -T
+
+No debe dar errores de sintaxis. 
+Si aparece alguno, léelo y busca líneas problemáticas en el bloque mostrado arriba 
+(normalmente es una coma o llave mal cerrada).
+
+
+# Ejecutar Snort escuchando en ens33
+$ sudo snort -c /usr/local/etc/snort/snort.lua -i ens33 -A alert_fast
+
+
+# Prueba desde vm2 (generar tráfico)
+# ICMP
+ping IP_DEL_SERVIDOR
+
+Puerto 21 (FTP)
+nmap -p21 IP_DEL_SERVIDOR
+# o
+telnet IP_DEL_SERVIDOR
+
+Puerto 22 (SSH)
+nmap -p22 IP_DEL_SERVIDOR
+# o
+ssh IP_DEL_SERVIDOR
+
+Puerto 80 (HTTP)
+nmap -p80 IP_DEL_SERVIDOR
+# o
+curl http://IP_DEL_SERVIDOR/
+
+
+Las alertas respectivas aparecerán en la terminal de vm1 si todo está bien.
+
+
+
+
+
+
+
+
+
+
+
