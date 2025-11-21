@@ -67,11 +67,7 @@ sudo ufw deny 22/tcp
 $ sudo ufw status verbose
 
 # Habilitar de nuevo con UFW (servidor)
-$ sudo ufw delete deny 80/tcp
-sudo ufw delete deny 21/tcp
-sudo ufw delete deny 22/tcp
-
-sudo ufw allow 80/tcp
+$ sudo ufw allow 80/tcp
 sudo ufw allow 21/tcp
 sudo ufw allow 22/tcp
 
