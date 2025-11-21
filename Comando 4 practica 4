@@ -1,0 +1,50 @@
+# Instalar Google Authenticator PAM
+$ sudo apt update
+$ sudo apt install libpam-google-authenticator
+
+# Agrega un nuevo usuario el cual llamaras "estudiante" 
+$ sudo adduser estudiante
+$ sudo usermod -aG sudo estudiante  # Da permisos de sudo
+
+# Configurar el usuario final
+$ su - usuario
+$ google-authenticator
+
+Escanea el QR con tu app móvil.
+Responde "y" a todas las preguntas recomendadas por defecto.
+Se crea el archivo: /home/usuario/.google_authenticator
+
+# Edita la el archivo /etc/pam.d/sshd
+A lo primero primero de todo agrega estas lineas:
+
+auth required pam_google_authenticator.so
+auth required pam_faillock.so preauth silent
+auth [success=1 default=bad] pam_unix.so
+auth [default=die] pam_faillock.so authfail
+auth sufficient pam_faillock.so authsucc
+account required pam_faillock.so
+
+# Configuración del demonio SSH /etc/ssh/sshd_config
+Asegúrate de tener todas estas líneas activas (sin #):
+
+PasswordAuthentication yes
+ChallengeResponseAuthentication yes
+UsePAM yes
+KbdInteractiveAuthentication yes
+
+De esas 4 lineas 3 ya estan, la que no este, agregala 
+
+# Reiniciar el servicio SSH
+$ sudo systemctl restart sshd
+
+# Si ves errores o el código no se pide, revisa los logs:
+
+$ sudo journalctl -u ssh.service -e
+
+# Prueba la conexión
+Desde tu cliente (otra máquina, VM, etc):
+
+$ ssh usuario@ip_servidor
+
+
+
