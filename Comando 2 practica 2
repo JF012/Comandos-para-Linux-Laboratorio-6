@@ -1,0 +1,79 @@
+# En las dos maquinas actualiza los repositorios
+$ sudo apt update
+
+# En la maquina 1 instala el servicio ftp
+$ sudo apt install apache2 vsftpd openssh-server
+
+# En la maquina 2 instala ftp solamente 
+$ sudo apt install ftp
+
+# Habilita y arranca los servicios
+$ sudo systemctl enable --now apache2 vsftpd ssh
+$ sudo systemctl status apache2 vsftpd ssh
+
+# Comprueba que están escuchando en los puertos 80, 21 y 22
+$ ss -tlnp | egrep ':80 |:21 |:22 '
+
+# Comprueba tu IP en la maquina 1 
+$ ip addr
+
+# En la VM cliente, prueba usando la IP del servidor, por ejemplo 192.168.56.10
+$ # HTTP
+$ curl http://192.168.56.10
+
+# FTP
+$ ftp 192.168.56.10
+
+# SSH
+$ ssh usuario@192.168.56.10
+
+# Bloquear puertos con iptables (en el servidor)
+$ sudo iptables -L -n -v
+
+# Luego bloqueas tráfico entrante TCP a 80, 21 y 22:​
+sudo iptables -A INPUT -p tcp --dport 80 -j DROP
+sudo iptables -A INPUT -p tcp --dport 21 -j DROP
+sudo iptables -A INPUT -p tcp --dport 22 -j DROP
+
+# Vuelve a listar reglas para mostrar en el informe que realmente están añadidas:
+$ sudo iptables -L -n -v
+
+# Desde la VM cliente intenta otra vez
+$ curl http://192.168.56.10      
+$ ftp 192.168.56.10              
+$ ssh usuario@192.168.56.10 
+
+# Habilitar de nuevo con iptables (servidor)
+$ sudo iptables -D INPUT -p tcp --dport 80 -j DROP
+sudo iptables -D INPUT -p tcp --dport 21 -j DROP
+sudo iptables -D INPUT -p tcp --dport 22 -j DROP
+
+# Verifica otra vez:​
+$ sudo iptables -L -n -v
+
+# Bloquear con UFW (servidor)
+$ sudo apt install ufw
+
+# Comprueba estado y actívalo, asegurándote primero de no perder SSH si lo necesitas:​
+$ sudo ufw status
+$ sudo ufw enable
+
+# Para bloquear puertos 80, 21 y 22
+$ sudo ufw deny 80/tcp
+sudo ufw deny 21/tcp
+sudo ufw deny 22/tcp
+
+# Ver estado para tu reporte
+$ sudo ufw status verbose
+
+# Habilitar de nuevo con UFW (servidor)
+$ sudo ufw delete deny 80/tcp
+sudo ufw delete deny 21/tcp
+sudo ufw delete deny 22/tcp
+
+sudo ufw allow 80/tcp
+sudo ufw allow 21/tcp
+sudo ufw allow 22/tcp
+
+# Comprueba el estado
+$ sudo ufw status verbose
