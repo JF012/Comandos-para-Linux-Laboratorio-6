@@ -1,0 +1,31 @@
+# Instalar y comprobar gpg2
+$ sudo apt update
+$ sudo apt install gnupg2
+
+# Comprueba que funciona:
+$ gpg2 --version
+
+# si no existe gpg2, prueba:
+$ gpg --version
+
+# Crear directorio y archivo de prueba
+$ mkdir ~/practica_gpg
+$ cd ~/practica_gpg
+$ echo "Este es el contenido secreto de la práctica de gpg." > secreto.txt
+
+# Comprueba el contenido:
+$ cat secreto.txt
+
+# Cifrar el archivo con gpg2. Usaremos cifrado simétrico con AES256 (muy típico en ejemplos).
+$ gpg2 --symmetric --cipher-algo AES256 secreto.txt
+
+# Ingresa la clave
+
+# Comprueba su dicha encriptacion 
+$ cat secreto.txt.gpg
+
+# Ahora descifra secreto.txt.gpg en un archivo nuevo o sobre el mismo nombre.​
+$ gpg2 --output secreto_descifrado.txt --decrypt secreto.txt.gpg
+
+# Mostrar el contenido descifrado
+$ cat secreto_descifrado.txt
